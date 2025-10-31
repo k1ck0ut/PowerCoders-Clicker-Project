@@ -77,7 +77,7 @@
 
   function recalcTotals() {
     if (typeof window.baseManualClick === "undefined")
-      window.baseManualClick = 0;
+      window.baseManualClick = 1;
     if (typeof window.basePassivePS === "undefined") window.basePassivePS = 0;
     if (typeof window.equipManualClick === "undefined")
       window.equipManualClick = 0;
@@ -135,6 +135,7 @@
     if (bonusClickFromPassive) {
       base += pcps * 0.05;
     }
+
     return base;
   };
 
