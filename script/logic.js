@@ -130,7 +130,6 @@
 
     if (specialOwned.network_boost) passiveMult *= 2;
     if (specialOwned.tools) perClickMult *= 1.1;
-    if (specialOwned.golden_click) perClickMult *= 2;
   };
 
   window.getPerClick = function () {

@@ -139,6 +139,26 @@ window.mainUpgrades = [
 
 window.specialUpgrades = [
   {
+    id: "unlock_shop",
+    name: "Unlock Shop",
+    desc: "Unlocks the Shop tab. (Once you buy it, it's yours forever)",
+    costFunc: () => shopCost(),
+    sellable: false,
+    icon: ICONS.shop,
+    effect: function () {
+      shopUnlocked = true;
+      localStorage.setItem(LS.shop, "1");
+
+      const shopTab = document.querySelector('.tab[data-panel="shop"]');
+      if (shopTab) {
+        shopTab.disabled = false;
+      }
+
+      if (typeof save === "function") save();
+    },
+    condition: () => !shopUnlocked,
+  },
+  {
     id: "crit_boost",
     name: "Critical Thinker",
     desc: "+5% critical chance",
@@ -160,32 +180,6 @@ window.specialUpgrades = [
     icon: ICONS.upgradeIcons?.crit_charm,
     effect: function () {
       critFromUpgrades += 0.1;
-      if (typeof recalcTotals === "function") recalcTotals();
-    },
-    condition: () => true,
-  },
-  {
-    id: "double_click",
-    name: "Double Clicker",
-    desc: "Doubles your per click permanently",
-    cost: 100000,
-    sellable: true,
-    icon: ICONS.upgradeIcons.double_click,
-    effect: function () {
-      perClickMult = perClickMult * 2;
-      if (typeof recalcTotals === "function") recalcTotals();
-    },
-    condition: () => true,
-  },
-  {
-    id: "triple_click",
-    name: "Triple Clicker",
-    desc: "Triples your per click permanently",
-    cost: 200000,
-    sellable: true,
-    icon: ICONS.upgradeIcons.triple_click,
-    effect: function () {
-      perClickMult = perClickMult * 3;
       if (typeof recalcTotals === "function") recalcTotals();
     },
     condition: () => true,
@@ -217,30 +211,6 @@ window.specialUpgrades = [
     condition: () => true,
   },
   {
-    id: "cpu_overclock",
-    name: "CPU Overclock",
-    desc: "+10 CPU",
-    cost: 20000,
-    sellable: false,
-    icon: ICONS.upgradeIcons.cpu_overclock,
-    effect: function () {
-      cpu += 10;
-    },
-    condition: () => true,
-  },
-  {
-    id: "usd_boost",
-    name: "Insider Trading",
-    desc: "+100 USD instantly",
-    cost: 15000,
-    sellable: false,
-    icon: ICONS.upgradeIcons.usd_boost,
-    effect: function () {
-      usd += 100;
-    },
-    condition: () => true,
-  },
-  {
     id: "network_boost",
     name: "Network Boost",
     desc: "Doubles passive income",
@@ -264,10 +234,36 @@ window.specialUpgrades = [
     condition: () => true,
   },
   {
+    id: "double_click",
+    name: "Double Clicker",
+    desc: "Doubles your per click permanently",
+    cost: 1000000,
+    sellable: true,
+    icon: ICONS.upgradeIcons.double_click,
+    effect: function () {
+      perClickMult = perClickMult * 2;
+      if (typeof recalcTotals === "function") recalcTotals();
+    },
+    condition: () => true,
+  },
+  {
+    id: "triple_click",
+    name: "Triple Clicker",
+    desc: "Triples your per click permanently",
+    cost: 20000000,
+    sellable: true,
+    icon: ICONS.upgradeIcons.triple_click,
+    effect: function () {
+      perClickMult = perClickMult * 3;
+      if (typeof recalcTotals === "function") recalcTotals();
+    },
+    condition: () => true,
+  },
+  {
     id: "click_from_passive",
     name: "Synergy Engine",
-    desc: "Each click gives +10% of current income per second.",
-    cost: 1000000,
+    desc: "Each click gives +10% of current income per second. (Once you buy it, it's yours forever)",
+    cost: 1000000000,
     sellable: false,
     icon: ICONS.upgradeIcons.server_room,
     effect: function () {
@@ -308,14 +304,38 @@ window.specialUpgrades = [
     condition: () => true,
   },
   {
+    id: "usd_boost",
+    name: "Insider Trading",
+    desc: "+100 USD instantly",
+    cost: 15000,
+    sellable: false,
+    icon: ICONS.upgradeIcons.usd_boost,
+    effect: function () {
+      usd += 100;
+    },
+    condition: () => true,
+  },
+  {
     id: "usd_billionaire",
-    name: "Billionaire Package",
-    desc: "+1,000 USD instantly",
-    cost: 50000,
+    name: "Millionaire Package",
+    desc: "+1,000,000 USD instantly",
+    cost: 50000000,
     sellable: false,
     icon: ICONS.upgradeIcons.usd_billionaire,
     effect: function () {
-      usd += 1000;
+      usd += 1000000;
+    },
+    condition: () => true,
+  },
+  {
+    id: "cpu_overclock",
+    name: "CPU Overclock",
+    desc: "+10 CPU",
+    cost: 20000,
+    sellable: false,
+    icon: ICONS.upgradeIcons.cpu_overclock,
+    effect: function () {
+      cpu += 10;
     },
     condition: () => true,
   },
@@ -344,25 +364,5 @@ window.specialUpgrades = [
       pc += 10000;
     },
     condition: () => true,
-  },
-  {
-    id: "unlock_shop",
-    name: "Unlock Shop",
-    desc: "Unlocks the Shop tab",
-    costFunc: () => shopCost(),
-    sellable: false,
-    icon: ICONS.upgradeIcons.unlock_shop,
-    effect: function () {
-      shopUnlocked = true;
-      localStorage.setItem(LS.shop, "1");
-
-      const shopTab = document.querySelector('.tab[data-panel="shop"]');
-      if (shopTab) {
-        shopTab.disabled = false;
-      }
-
-      if (typeof save === "function") save();
-    },
-    condition: () => !shopUnlocked,
   },
 ];
