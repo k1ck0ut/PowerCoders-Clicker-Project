@@ -77,7 +77,7 @@
 
   function recalcTotals() {
     if (typeof window.baseManualClick === "undefined")
-      window.baseManualClick = 1;
+      window.baseManualClick = 0;
     if (typeof window.basePassivePS === "undefined") window.basePassivePS = 0;
     if (typeof window.equipManualClick === "undefined")
       window.equipManualClick = 0;
@@ -400,7 +400,7 @@
     upgradeClickPower = {};
     upgradePassivePower = {};
 
-    baseManualClick = secretUnlocked ? 5 : 0;
+    baseManualClick = secretUnlocked ? 5 : 1;
     basePassivePS = 0;
 
     equipManualClick = 0;
