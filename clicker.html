@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Powercoders Clicker</title>
+  <link rel="stylesheet" href="clicker.css" />
+  <link rel="icon" type="assets/x-icon" href="./assets/logo.ico">
+</head>
+
+<body>
+  <div class="page-bg"></div>
+  <div class="app">
+    <header class="topbar">
+      <nav class="tabs">
+        <button class="tab" data-panel="upgrades" aria-label="Upgrades">
+          <img class="ico" id="ico-upgrades" alt="Upg" />
+          <span class="t">Upg</span>
+        </button>
+        <button class="tab" data-panel="shop" aria-label="Shop" disabled>
+          <img class="ico" id="ico-shop" alt="Shop" />
+          <span class="t">Shop</span>
+        </button>
+        <button class="tab" data-panel="map" aria-label="Map">
+          <img class="ico" id="ico-map" alt="Map" />
+          <span class="t">Map</span>
+        </button>
+        <button class="tab" data-panel="inventory" aria-label="Inventory">
+          <img class="ico" id="ico-inventory" alt="Inv" />
+          <span class="t">Inventory</span>
+        </button>
+      </nav>
+      <div class="curr">
+        <div class="c"><span class="ico-txt">$</span><b id="usd">0</b></div>
+        <div class="c"><span class="ico-txt" id="pSym">{P.}</span><b id="pc">0</b></div>
+        <div class="c"><img class="ico" id="ico-cpu" alt="CPU" /><b id="cpu">0</b></div>
+      </div>
+    </header>
+
+    <main class="playfield" id="playfield">
+      <div class="playfield-visual-wrapper">
+        <div class="playfield-bg">
+          <video class="bg-video bg-dark" src="assets/bg-dark.webm" autoplay muted loop playsinline></video>
+          <video class="bg-video bg-neon" src="assets/bg-neon.webm" autoplay muted loop playsinline></video>
+        </div>
+        <div class="playfield-foreground">
+          <button id="closePanels" class="close-btn" aria-label="Close">✕</button>
+          <div id="toastStack" aria-live="polite" aria-atomic="true"></div>
+        </div>
+      </div>
+      <div id="centerWrapper">
+        <div id="centerSymbol" class="center-shared">{P.}</div>
+        <div id="centerAmount" class="center-shared">0</div>
+      </div>
+      <section class="panel" id="panel-upgrades" aria-label="Upgrades">
+        <h3>Upgrades</h3>
+        <div class="upgrade-tabs">
+          <button class="upgrade-tab selected" id="upgradeTabMain" data-cat="main">Main</button>
+          <button class="upgrade-tab" id="upgradeTabSpecial" data-cat="special">Special</button>
+        </div>
+        <div class="buy-qty">
+          <button class="btn small" id="buyQty1">x1</button>
+          <button class="btn small" id="buyQty5">x5</button>
+          <button class="btn small" id="buyQty10">x10</button>
+          <button class="btn small" id="buyQtyMax">Max</button>
+        </div>
+        <div id="upgradeListMain" class="upgrade-list"></div>
+        <div id="upgradeListSpecial" class="upgrade-list hidden"></div>
+      </section>
+
+      <section class="panel" id="panel-shop" aria-label="Shop">
+        <h3>Shop</h3>
+        <div class="shop-tabs">
+          <button class="shop-tab selected" data-shop-tab="cases">Cases</button>
+          <button class="shop-tab" data-shop-tab="daily">Daily</button>
+          <button class="shop-tab" data-shop-tab="exchange">Exchange</button>
+          <button class="shop-tab" data-shop-tab="styles" disabled>Styles</button>
+          <button class="shop-tab" data-shop-tab="gambling" disabled>Gambling 🔒</button>
+        </div>
+
+        <div class="shop-content active" id="shopCases">
+          <div class="card">
+            <div class="title">Loot Cases</div>
+            <div class="sub">Buy a case, open it, receive random gear into your bag.</div>
+
+            <div class="shop-grid">
+
+              <div class="shop-item">
+                <div class="shop-item-ico rare">Basic Case</div>
+                <div class="shop-item-body">
+                  <div class="shop-item-name">Basic Case</div>
+                  <div class="shop-item-desc">Common / Uncommon gear</div>
+                  <div class="shop-item-price"><span class="pSym">{P.}</span> <span>19 999</span></div>
+                  <button class="btn small buy-case" data-case="basic">Buy</button>
+                </div>
+              </div>
+
+              <div class="shop-item">
+                <div class="shop-item-ico epic">Pro Case</div>
+                <div class="shop-item-body">
+                  <div class="shop-item-name">Pro Case</div>
+                  <div class="shop-item-desc">Uncommon / Rare / Epic gear</div>
+                  <div class="shop-item-price"><span class="pSym">{P.}</span> <span>199 999</span></div>
+                  <button class="btn small buy-case" data-case="pro">Buy</button>
+                </div>
+              </div>
+
+              <div class="shop-item">
+                <div class="shop-item-ico legendary">Legend Case</div>
+                <div class="shop-item-body">
+                  <div class="shop-item-name">Legend Case</div>
+                  <div class="shop-item-desc">Epic / Legendary only</div>
+                  <div class="shop-item-price"><span class="pSym">{P.}</span> <span>1 999 999</span></div>
+                  <button class="btn small buy-case" data-case="legend">Buy</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="shop-content" id="shopDaily">
+          <div class="card">
+            <div class="row" style="justify-content:space-between;align-items:center;">
+              <div class="title">Daily Shop</div>
+              <div class="sub" id="dailyTimer">Resets at 00:00 Bern</div>
+            </div>
+
+            <div class="sub" style="margin-top:6px;">Limited stock. Refreshes daily.</div>
+
+            <div class="shop-grid" id="dailyItems"></div>
+          </div>
+        </div>
+
+        <div class="shop-content" id="shopExchange">
+          <div class="card">
+            <div class="title">Exchange</div>
+            <div class="sub">Swap {P.} ⇄ $ and {P.} ⇄ CPU</div>
+            <div class="shop-grid" id="exchangeItems"></div>
+          </div>
+        </div>
+
+        <div class="shop-content" id="shopStyles">
+          <div class="card">
+            <div class="title">Style Shop</div>
+            <div class="sub">Coming soon: themes / cosmetics</div>
+          </div>
+        </div>
+
+        <div class="shop-content" id="shopGambling">
+          <div class="card">
+            <div class="title">Gambling</div>
+            <div class="sub">Locked for now.</div>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="panel" id="panel-stats" aria-label="Stats">
+        <h3>Stats</h3>
+        <div class="card">
+          <div class="line"><span>Total clicks</span><b id="totalClicks">0</b></div>
+          <div class="line"><span>Per click</span><b><span id="perClick">1</span> <span id="pSymInline3">{P.}</span></b>
+          </div>
+          <div class="line"><span>Per second</span><b><span id="perSecond">0</span> <span
+                id="pSymInline4">{P.}</span></b>
+          </div>
+          <div class="line"><span>Crit chance</span><b id="critChanceStat">0%</b></div>
+          <div class="line"><span>Crit multiplier</span><b id="critMultStat">x2</b></div>
+        </div>
+        <div class="card" id="achievementsCard">
+          <div class="title">Achievements</div>
+          <div id="achievementsList" class="achievements"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-map" aria-label="Map">
+        <h3>Map</h3>
+
+        <div class="map-actions">
+          <button id="btnCity" class="btn primary">City</button>
+        </div>
+
+        <div class="card">
+          <div id="mapInfo" class="sub">
+            Explore the planet. Click events to earn rewards.
+          </div>
+        </div>
+
+        <div id="map3d" class="map3d"></div>
+      </section>
+      <section class="panel" id="panel-city" aria-label="City">
+        <h3>City</h3>
+        <div class="card">
+          <div class="row" style="justify-content:space-between;align-items:center;">
+            <div class="title">City Map</div>
+            <button id="closeCity" class="btn ghost">Close</button>
+          </div>
+          <div class="sub">Upgrade your buildings here.</div>
+        </div>
+        <div class="card">
+          <div class="sub">Coming soon: buildings & upgrades UI</div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-inventory" aria-label="Inventory">
+        <h3>Inventory</h3>
+
+        <div class="inventory-wrapper card-big">
+          <div class="equip-block card subpanel compact-equip">
+            <div class="equip-header-row">
+              <div class="title">Equipment</div>
+            </div>
+
+            <div class="equip-layout compact">
+              <div class="equip-preview small">
+                <div class="equip-preview-body small">
+                </div>
+              </div>
+
+              <div class="equip-slots" id="equipGrid">
+                <div class="slot" data-slot="hat"><span>Hat</span></div>
+                <div class="slot" data-slot="shirt"><span>Shirt</span></div>
+                <div class="slot" data-slot="pants"><span>Pants</span></div>
+                <div class="slot" data-slot="boots"><span>Boots</span></div>
+                <div class="slot" data-slot="ring"><span>Ring</span></div>
+                <div class="slot" data-slot="jewel"><span>Jewel</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bag-block card subpanel">
+            <div class="row bag-header" style="justify-content:space-between;align-items:center;">
+              <div class="title">Bag</div>
+              <div class="sub" id="invCapacity">0 / 20</div>
+            </div>
+
+            <div id="bagGrid" class="bag-grid"></div>
+
+            <div class="row gap bag-actions" style="margin-top:10px;flex-wrap:wrap;">
+              <button id="btnSortInv" class="btn small">Sort</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-settings" aria-label="Settings">
+        <h3>Settings</h3>
+        <div class="card">
+          <div class="line">
+            <span>Sound FX</span>
+            <label class="switch">
+              <input type="checkbox" id="sfxToggle" />
+              <span></span>
+            </label>
+          </div>
+          <div class="line">
+            <span>Music</span>
+            <label class="switch">
+              <input type="checkbox" id="musicToggle" />
+              <span></span>
+            </label>
+          </div>
+          <div class="line" id="musicVolumeRow">
+            <span>Music Volume</span>
+            <input type="range" id="musicVolume" min="0" max="=200" step="1"
+              style="width: 120px; vertical-align: middle;" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="line">
+            <span>Theme</span>
+            <select id="themeSel">
+              <option value="dark">Dark</option>
+              <option value="light">Light&Red</option>
+              <option value="neon">Neon</option>
+              <option value="green">Green</option>
+            </select>
+          </div>
+          <div class="line">
+            <span>Logo</span>
+            <select id="styleSel"></select>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="setting-row">
+            <label>
+              <input type="checkbox" id="effectsToggle" />
+              Disable visual effects
+            </label>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="dock">
+      <div class="mini" id="miniBrain">
+        <img class="mini-ico" id="miniBrainIco" alt="Brainstorm" />
+        <span class="mini-x" id="miniBrainX">x0</span>
+      </div>
+
+      <button class="clicker" id="clicker" aria-label="Click!">
+        <img id="clickLogo" alt="Logo" />
+      </button>
+
+      <div class="dock-actions">
+        <button class="tab" data-panel="stats" aria-label="Stats"><span class="t">Stats</span></button>
+        <button class="btn ghost" id="openSettings"><span class="gear">⚙️</span> Settings</button>
+        <button class="btn disabled" id="rebirth" disabled>Rebirth</button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://unpkg.com/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script src="./script/constants.js"></script>
+  <script src="./script/state.js"></script>
+  <script src="./script/upgrades.js"></script>
+  <script src="./script/achievements.js"></script>
+  <script src="./script/inventory.js"></script>
+  <script src="./script/logic.js"></script>
+  <script src="./script/ui.js"></script>
+  <script src="./script/audio.js"></script>
+  <script src="./script/events.js"></script>
+  <script src="./script/main.js"></script>
+</body>
+
+</html>
