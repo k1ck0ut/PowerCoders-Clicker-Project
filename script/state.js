@@ -50,12 +50,6 @@
   window.achievementsUnlocked = {};
   window.perClickMult = 1;
   window.buyMode = 1;
-  window.city = JSON.parse(localStorage.getItem("pc:city") || "{}");
-  CITY_BUILDINGS?.forEach((b) => {
-    if (typeof city[b.id] !== "number") city[b.id] = 0;
-  });
-
-  localStorage.setItem("pc:city", JSON.stringify(city));
 
   window.refineData =
     JSON.parse(localStorage.getItem("pc:refineData") || "{}") || {};
