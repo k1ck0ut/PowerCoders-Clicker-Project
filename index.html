@@ -294,6 +294,19 @@
             </label>
           </div>
         </div>
+        <div class="card">
+          <div class="line"><b>Account</b></div>
+          <div class="line">
+            <button id="btnLogin" class="btn small">Sign in with Google</button>
+            <button id="btnLogout" class="btn small" style="display:none">Log out</button>
+          </div>
+          <div class="line">
+            <button id="btnCloudSave" class="btn small">Save to Cloud</button>
+            <button id="btnCloudLoad" class="btn small">Load from Cloud</button>
+          </div>
+          <div class="sub" id="authInfo">Not signed in</div>
+        </div>
+
       </section>
 
     </main>
@@ -330,6 +343,9 @@
   <script src="./script/audio.js"></script>
   <script src="./script/events.js"></script>
   <script src="./script/main.js"></script>
+  <script type="module" src="./script/cloudsave.js"></script>
+
+
 </body>
 
 </html>
