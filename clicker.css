@@ -15,14 +15,14 @@
   --center-symbol-color: #ffffff;
 }
 *{box-sizing:border-box}
-html,body {
-  height:100%;
-  -webkit-touch-callout: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
+html, body {
+  height: 100%;
   touch-action: manipulation;
-
+  -webkit-user-select: none;
+  user-select: none;
+}
+button, .btn {
+  touch-action: manipulation;
 }
 body {
   margin:0;

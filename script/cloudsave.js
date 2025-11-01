@@ -30,6 +30,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+window._auth = auth;
 const db = getFirestore(app);
 console.log("Firebase projectId:", getApp().options.projectId);
 
