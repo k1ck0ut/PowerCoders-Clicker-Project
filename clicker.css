@@ -16,10 +16,19 @@
 }
 *{box-sizing:border-box}
 html, body {
+  margin: 0;
+  padding: 0;
   height: 100%;
+  overflow: hidden;
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
+}
+canvas, #game {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
 }
 button, .btn {
   touch-action: manipulation;
