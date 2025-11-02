@@ -365,4 +365,25 @@ window.specialUpgrades = [
     },
     condition: () => true,
   },
+  {
+    id: "passive_click_1pct",
+    name: "Passive Relay",
+    desc: "Each click gives +1% of your current per-second income.",
+    cost: 50000,
+    sellable: true,
+    icon: ICONS.upgradeIcons?.server_room || ICONS.shop,
+    effect: function () {
+      window.passiveToClickPercent = (window.passiveToClickPercent || 0) + 0.01;
+      localStorage.setItem("pc:passiveToClick", window.passiveToClickPercent);
+      if (typeof recalcTotals === "function") recalcTotals();
+      if (typeof save === "function") save();
+      if (typeof pushNotification === "function")
+        pushNotification(
+          "upgrades",
+          "Upgrade purchased",
+          "Passive Relay: +1% per-second -> click"
+        );
+    },
+    condition: () => true,
+  },
 ];

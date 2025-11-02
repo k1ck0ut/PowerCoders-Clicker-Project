@@ -1,4 +1,20 @@
 (function () {
+  // Lightweight DOM cache to avoid repeated getElementById calls for hot paths.
+  // Stores `null` if not found so subsequent lookups are cheap.
+  const __elCache = Object.create(null);
+  window.__getEl = function (id) {
+    if (!id) return null;
+    if (Object.prototype.hasOwnProperty.call(__elCache, id)) return __elCache[id];
+    const el = document.getElementById(id);
+    __elCache[id] = el || null;
+    return __elCache[id];
+  };
+  // Helper to clear a cached element (if DOM changes)
+  window.__clearElCache = function (id) {
+    if (!id) return;
+    if (Object.prototype.hasOwnProperty.call(__elCache, id)) delete __elCache[id];
+  };
+
   window.logoSrc = function () {
     return ICONS.logoPresets[logoKey] || ICONS.logoPresets.powercoders;
   };
@@ -12,6 +28,12 @@
     if (icoInventory) icoInventory.src = ICONS.inventory;
     if (miniBrainIco) miniBrainIco.src = ICONS.upgradeIcons.brainstorm;
     if (icoCPU) icoCPU.src = ICONS.cpu;
+    const icoInvBag = document.getElementById("ico-inv-bag");
+    if (icoInvBag) icoInvBag.src = ICONS.inventory;
+    const icoInvUp1 = document.getElementById("ico-inv-upgrade");
+    if (icoInvUp1) icoInvUp1.src = ICONS.upgrades;
+    const icoInvUp2 = document.getElementById("ico-inv-upgrade2");
+    if (icoInvUp2) icoInvUp2.src = ICONS.upgrades;
   };
 
   window.applyTheme = function () {
@@ -38,6 +60,82 @@
     if (typeof renderUpgrades === "function") renderUpgrades();
   };
 
+  function saveNotifications() {
+    try {
+      localStorage.setItem(
+        "pc:notifications",
+        JSON.stringify(window.notifications || {})
+      );
+    } catch (e) {}
+  }
+
+  function updateTabNotifIndicators() {
+    const unseen = Object.values(window.notifications || {}).some(function (v) {
+      return !!v;
+    });
+    const notifs = window.notifications || {};
+    document.querySelectorAll(".tab[data-panel]").forEach(function (el) {
+      const panel = el.getAttribute("data-panel");
+      if (panel && notifs[panel]) el.classList.add("has-notif");
+      else el.classList.remove("has-notif");
+    });
+
+    const globalOn = !!notifs["global"];
+    if (globalOn) {
+      document.querySelectorAll(".tab[data-panel]").forEach(function (el) {
+        el.classList.add("has-notif");
+      });
+    }
+  }
+
+  window.pushNotification = function (panel, title, message) {
+    if (!window.notifications) window.notifications = {};
+    try {
+      window.notifications[panel || "global"] = true;
+      saveNotifications();
+      window.unseenNotificationCount =
+        Object.values(window.notifications || {}).filter(function (v) {
+          return !!v;
+        }).length || 0;
+    } catch (e) {}
+    updateTabNotifIndicators();
+
+    try {
+      const stack = __getEl("toastStack");
+      if (stack) {
+        const box = document.createElement("div");
+        box.className = "toast";
+        box.innerHTML =
+          '<div class="title">' +
+          (title || "") +
+          '</div><div class="msg">' +
+          (message || "") +
+          "</div>";
+        stack.appendChild(box);
+        setTimeout(function () {
+          box.classList.add("show");
+        }, 20);
+        setTimeout(function () {
+          box.classList.remove("show");
+          setTimeout(() => box.remove(), 300);
+        }, 4500);
+      }
+    } catch (e) {}
+  };
+
+  window.clearNotification = function (panel) {
+    if (!window.notifications) window.notifications = {};
+    if (panel && window.notifications[panel]) {
+      delete window.notifications[panel];
+      saveNotifications();
+      window.unseenNotificationCount =
+        Object.values(window.notifications || {}).filter(function (v) {
+          return !!v;
+        }).length || 0;
+      updateTabNotifIndicators();
+    }
+  };
+
   let map3d = {
     inited: false,
     running: false,
@@ -60,7 +158,7 @@
 
   function initMap3D() {
     if (map3d.inited) return;
-    map3d.mount = document.getElementById("map3d");
+  map3d.mount = __getEl("map3d");
     if (!map3d.mount || !window.THREE) return;
 
     const rect = map3d.mount.getBoundingClientRect();
@@ -330,7 +428,8 @@
         };
 
         spawnRefugeeEvent();
-        setInterval(spawnRefugeeEvent, 8000);
+        // store interval id so it can be cleared when map3D is stopped
+        map3d.spawnInterval = setInterval(spawnRefugeeEvent, 8000);
       },
       undefined,
       function (err) {
@@ -389,9 +488,19 @@
     map3d.running = false;
     if (map3d.rafId) cancelAnimationFrame(map3d.rafId);
     map3d.rafId = null;
+    // clear spawn interval if set
+    try {
+      if (map3d.spawnInterval) {
+        clearInterval(map3d.spawnInterval);
+        map3d.spawnInterval = null;
+      }
+    } catch (e) {}
+
     if (map3d.overlays && map3d.overlays.length) {
       map3d.overlays.forEach(function (b) {
         try {
+          // cancel any RAF loops attached to overlay buttons
+          if (b && b._raf) cancelAnimationFrame(b._raf);
           b.remove();
         } catch (e) {}
       });
@@ -458,6 +567,8 @@
     }
   };
 
+  if (typeof window.spawnAvoidTop === "undefined") window.spawnAvoidTop = true;
+
   window.getStyleKeyFromState = function () {
     const match = Object.keys(STYLE_PRESETS).find(function (k) {
       const s = STYLE_PRESETS[k];
@@ -480,6 +591,9 @@
     if (centerSymbol) {
       if (name) centerSymbol.style.opacity = "0.06";
     }
+    try {
+      if (name) clearNotification(name);
+    } catch (e) {}
     if (name === "map") {
       initMap3D();
       startMap3D();
@@ -506,6 +620,31 @@
     if (!effectsEnabled) return;
     n = n || 1;
     const rect = playfield.getBoundingClientRect();
+    const MAX_FALL = 75;
+    const FAST_THRESHOLD = 50;
+    const FAST_CLICK_MS = 140;
+
+    const now = performance.now();
+    const last = window._lastSpawnAt || 0;
+    const dt = now - last;
+    window._lastSpawnAt = now;
+    if (dt < FAST_CLICK_MS) {
+      const t = Math.max(0.05, dt / FAST_CLICK_MS);
+      n = Math.max(1, Math.round(n * t));
+    }
+
+    const existing = Array.from(document.querySelectorAll(".fall"));
+    const willTotal = existing.length + n;
+    if (willTotal > MAX_FALL) {
+      const toRemove = willTotal - MAX_FALL;
+      for (let i = 0; i < toRemove; i++) {
+        try {
+          const el = existing[i];
+          if (el) el.remove();
+        } catch (e) {}
+      }
+    }
+
     for (let i = 0; i < n; i++) {
       const s = document.createElement("div");
       s.className = "fall";
@@ -514,9 +653,21 @@
       s.appendChild(img);
       const x = Math.random() * (rect.width - 40) - rect.width / 2;
       s.style.setProperty("--x", x + "px");
-      s.style.setProperty("--dur", 3.6 + Math.random() * 1 + "s");
+
+      const currentCount = document.querySelectorAll(".fall").length;
+      const fastPool = currentCount >= FAST_THRESHOLD;
+
+      if (dt < FAST_CLICK_MS || fastPool) {
+        s.classList.add("evaporate");
+        s.style.setProperty("--dur", 0.55 + Math.random() * 0.6 + "s");
+      } else {
+        s.style.removeProperty("animation");
+        s.style.setProperty("--dur", 3.6 + Math.random() * 1 + "s");
+      }
+
+      const startTop = window.spawnAvoidTop ? -40 : 0;
       s.style.left = rect.width / 2 + "px";
-      s.style.top = "0px";
+      s.style.top = startTop + "px";
       playfield.appendChild(s);
       s.addEventListener("animationend", function () {
         s.remove();
@@ -548,7 +699,7 @@
     if (miniBrainX) miniBrainX.textContent = "x" + formatCompact(brainLvl);
     if (typeof elPerSecond !== "undefined" && elPerSecond)
       elPerSecond.textContent = formatCompact(pcps);
-    const centerAmountEl = document.getElementById("centerAmount");
+    const centerAmountEl = __getEl("centerAmount");
     if (centerAmountEl) {
       centerAmountEl.textContent = Math.floor(pc).toLocaleString("en-US");
     }
@@ -579,7 +730,21 @@
       ) {
         achievementsUnlocked[a.id] = true;
         localStorage.setItem("pc:ach:" + a.id, "1");
-        if (typeof a.reward === "function") a.reward();
+        try {
+          localStorage.setItem("pc:achc:" + a.id, "0");
+        } catch (e) {}
+        try {
+          pushNotification("achievements", "Achievement Unlocked", a.name);
+        } catch (e) {}
+        try {
+          if (a && a.id === "happy_halloween") {
+            pushNotification(
+              "shop",
+              "Shop Event",
+              "Halloween shop opened — take a look!"
+            );
+          }
+        } catch (e) {}
       }
     });
     renderAchievements();
@@ -779,10 +944,89 @@
     const listEl = document.getElementById("achievementsList");
     if (!listEl) return;
     listEl.innerHTML = "";
+    function resolveAchievementIcon(a) {
+      try {
+        if (a && a.icon) {
+          if (a.icon.indexOf("/") !== -1) return a.icon;
+          return "assets/icons/" + a.icon;
+        }
+        if (/^ach_up_(.+)_x\d+/.test(a.id)) {
+          const m = a.id.match(/^ach_up_(.+)_x\d+/);
+          const uid = m && m[1];
+          if (uid && Array.isArray(window.mainUpgrades)) {
+            const u = window.mainUpgrades.find((x) => x.id === uid);
+            if (u && u.icon)
+              return u.icon.indexOf("/") === -1
+                ? "assets/icons/" + u.icon
+                : u.icon;
+          }
+        }
+        const FALLBACK = {
+          first_click: logoSrc(),
+          click_master: "./assets/double_click.png",
+          brainiac: "./assets/brainstorm.png",
+          brainiac_2: "./assets/brainstorm.png",
+          brainiac_3: "./assets/brainstorm.png",
+          brainstorm_god: "./assets/brainstorm.png",
+          mk1_refine: "./assets/icons/jewel_chipped.png",
+          mk2_refine: "./assets/icons/jewel_azure.png",
+          overclocker: "./assets/passive_boost2.png",
+          system_architect: "./assets/deep_learning.png",
+          reset_novice: "./assets/trophy.png",
+          secret_reset: "./assets/icons/crown_sparks.png",
+          passive_relay_user: "./assets/trophy.png",
+          upgrade_collector: "./assets/trophy.png",
+          special_collector: "./assets/trophy.png",
+          wealthy: "./assets/trophy.png",
+          pcps_1000: "./assets/trophy.png",
+          clicks_10000: "./assets/trophy.png",
+          shop_unlocked: "./assets/icons/case_basic.png",
+          happy_halloween: "./assets/halloween.png",
+        };
+        if (FALLBACK[a.id]) return FALLBACK[a.id];
+      } catch (e) {}
+      return "assets/icons/case_basic.png";
+    }
+
+    const TIER_COLORS = {
+      Bronze: "#b87333",
+      Silver: "#c0c0c0",
+      Gold: "#ffd700",
+      Diamond: "#b9f2ff",
+    };
+
     achievements.forEach(function (a) {
       const unlocked = achievementsUnlocked[a.id];
+      const claimed = localStorage.getItem("pc:achc:" + a.id) === "1";
       const item = document.createElement("div");
       item.className = "achievement" + (unlocked ? "" : " locked");
+
+      const icoWrap = document.createElement("div");
+      icoWrap.className = "achievement-ico";
+      try {
+        const img = document.createElement("img");
+        img.src = resolveAchievementIcon(a);
+        img.alt = a.name || "ach";
+        img.style.width = "44px";
+        img.style.height = "44px";
+        img.style.display = "block";
+        img.style.objectFit = "contain";
+        img.style.borderRadius = "6px";
+        if (!unlocked) img.style.filter = "grayscale(100%) opacity(0.6)";
+        icoWrap.appendChild(img);
+      } catch (e) {}
+
+      const tierMatch = (a.name || "").match(
+        /\b(Bronze|Silver|Gold|Diamond)\b/
+      );
+      if (tierMatch && tierMatch[1]) {
+        const color = TIER_COLORS[tierMatch[1]] || "rgba(0,0,0,0.12)";
+        icoWrap.style.boxShadow = `0 0 12px ${color}`;
+        icoWrap.style.border = `2px solid ${color}`;
+      }
+
+      item.appendChild(icoWrap);
+
       const info = document.createElement("div");
       const title = document.createElement("div");
       title.textContent = a.name;
@@ -798,11 +1042,53 @@
       info.appendChild(title);
       info.appendChild(desc);
       item.appendChild(info);
+
       const status = document.createElement("div");
-      status.textContent = unlocked ? "Unlocked" : "";
+      if (!unlocked) status.textContent = "";
+      else status.textContent = claimed ? "Claimed" : "";
       status.style.fontWeight = "700";
       status.style.fontSize = "11px";
       item.appendChild(status);
+      if (unlocked && !claimed) {
+        const claimWrap = document.createElement("div");
+        const claimBtn = document.createElement("button");
+        claimBtn.className = "btn primary small";
+        claimBtn.textContent = "Claim";
+        claimBtn.addEventListener("click", function () {
+          try {
+            const before = Number(pc || 0);
+            if (typeof a.reward === "function") a.reward();
+            const after = Number(pc || 0);
+            const delta = Math.max(0, Math.floor(after - before));
+            try {
+              localStorage.setItem("pc:achc:" + a.id, "1");
+            } catch (e) {}
+            const msg =
+              delta > 0
+                ? "+" + formatCompact(delta) + " " + curr
+                : "Reward applied";
+            try {
+              pushNotification(
+                "achievements",
+                "Reward Claimed",
+                a.name + " — " + msg
+              );
+            } catch (e) {}
+            try {
+              if (a && a.id === "happy_halloween") {
+                pushNotification(
+                  "shop",
+                  "Shop Event",
+                  "Halloween shop opened — take a look!"
+                );
+              }
+            } catch (e) {}
+            renderAchievements();
+          } catch (e) {}
+        });
+        claimWrap.appendChild(claimBtn);
+        item.appendChild(claimWrap);
+      }
       listEl.appendChild(item);
     });
   };
@@ -873,4 +1159,7 @@
       });
     }
   };
+  try {
+    updateTabNotifIndicators();
+  } catch (e) {}
 })();

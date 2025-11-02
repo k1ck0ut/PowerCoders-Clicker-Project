@@ -346,4 +346,125 @@
       }
     };
   })();
+  (function initInventoryTabsAndPicker() {
+    const btns = Array.from(document.querySelectorAll(".inv-tab"));
+    const views = {
+      bag: document.getElementById("invTabBag"),
+      upgrade: document.getElementById("invTabUpgrade"),
+    };
+    function showTab(key) {
+      btns.forEach((b) =>
+        b.classList.toggle("selected", b.dataset.invtab === key)
+      );
+      Object.values(views).forEach((v) => v && v.classList.remove("active"));
+      if (views[key]) views[key].classList.add("active");
+    }
+    if (btns.length) {
+      btns.forEach((b) =>
+        b.addEventListener("click", () => showTab(b.dataset.invtab))
+      );
+      showTab("bag");
+    }
+    const pickSquare = document.getElementById("upgradePickSquare");
+    if (pickSquare) pickSquare.addEventListener("click", openChooser);
+    function openChooser() {
+      const overlay = document.createElement("div");
+      overlay.className = "upgrade-chooser";
+      overlay.innerHTML =
+        '<div class="modal"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="title">Select Item</div><button class="btn ghost" id="closeChooser">Close</button></div><div class="grid" id="chooserGrid"></div></div>';
+      document.body.appendChild(overlay);
+
+      const grid = overlay.querySelector("#chooserGrid");
+
+      Object.entries(window.equipment || {}).forEach(([slot, item]) => {
+        if (!item) return;
+        grid.appendChild(makeCell(item, true, slot, null));
+      });
+      (window.inventory || []).forEach((item, idx) => {
+        grid.appendChild(makeCell(item, false, null, idx));
+      });
+
+      overlay.querySelector("#closeChooser").onclick = () => overlay.remove();
+
+      function makeCell(item, equipped, slot, idx) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        const stat = item.crit
+          ? "+" + Math.round(item.crit * 100) + "% crit"
+          : item.perClick
+          ? "+" + item.perClick + " /click"
+          : item.perSecond
+          ? "+" + item.perSecond + " /sec"
+          : "";
+        cell.innerHTML =
+          '<div class="icon">' +
+          (item.icon ? '<img src="' + item.icon + '" alt="">' : "") +
+          '</div><div class="label" style="text-align:center;">' +
+          (item.name || "???") +
+          (equipped ? ' <span class="badge">Equipped</span>' : "") +
+          '</div><div class="sub" style="text-align:center;opacity:.8;margin-top:4px;">' +
+          stat +
+          "</div>";
+        cell.addEventListener("click", () => {
+          if (equipped) {
+            if (
+              window.clothesUpgrade &&
+              window.clothesUpgrade.selectEquippedSlot
+            )
+              window.clothesUpgrade.selectEquippedSlot(slot);
+            renderPicked(item, true, slot, null);
+          } else {
+            if (
+              window.clothesUpgrade &&
+              window.clothesUpgrade.selectInventoryIndex
+            )
+              window.clothesUpgrade.selectInventoryIndex(idx);
+            renderPicked(item, false, null, idx);
+          }
+          overlay.remove();
+        });
+        return cell;
+      }
+
+      function renderPicked(item, equipped, slot, idx) {
+        const box = document.getElementById("upgradePickSquare");
+        if (!box) return;
+        box.innerHTML = "";
+        if (item && item.icon) {
+          const img = document.createElement("img");
+          img.src = item.icon;
+          box.appendChild(img);
+        } else {
+          box.textContent = item?.name || "???";
+        }
+        if (equipped) {
+          box.setAttribute("data-equipped", "1");
+          box.setAttribute("data-slot", slot);
+          box.removeAttribute("data-inv-index");
+          box.title = (item?.name || "") + " — Equipped";
+        } else {
+          box.setAttribute("data-equipped", "0");
+          box.setAttribute("data-inv-index", String(idx));
+          box.removeAttribute("data-slot");
+          box.title = item?.name || "";
+        }
+      }
+    }
+
+    function renderPicked(item, equipped) {
+      const box = document.getElementById("upgradePickSquare");
+      if (!box) return;
+      box.innerHTML = "";
+      if (item && item.icon) {
+        const img = document.createElement("img");
+        img.src = item.icon;
+        box.appendChild(img);
+      } else {
+        box.textContent = item?.name || "???";
+      }
+      box.setAttribute("data-equipped", equipped ? "1" : "0");
+      box.title = (item?.name || "") + (equipped ? " — Equipped" : "");
+      window.selectedUpgradeItem = item;
+    }
+  })();
 })();

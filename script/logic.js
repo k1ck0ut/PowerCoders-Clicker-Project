@@ -135,6 +135,9 @@
     if (bonusClickFromPassive) {
       base += pcps * 0.05;
     }
+    if (window.passiveToClickPercent) {
+      base += (pcps || 0) * window.passiveToClickPercent;
+    }
 
     return base;
   };
@@ -289,6 +292,21 @@
         localStorage.setItem("pc:baseManualClick", baseManualClick);
         break;
 
+      case "passive_click_1pct":
+        try {
+          window.passiveToClickPercent = Math.max(
+            0,
+            (window.passiveToClickPercent || 0) - 0.01
+          );
+          try {
+            localStorage.setItem(
+              "pc:passiveToClick",
+              window.passiveToClickPercent
+            );
+          } catch (e) {}
+        } catch (e) {}
+        break;
+
       case "network_boost":
         break;
 
@@ -361,6 +379,9 @@
     localStorage.setItem("pc:baseManualClick", baseManualClick || 0);
     localStorage.setItem("pc:basePassivePS", basePassivePS || 0);
     localStorage.setItem("pc:effects", window.effectsEnabled ? "1" : "0");
+    try {
+      localStorage.setItem("pc:lastActive", Date.now());
+    } catch (e) {}
   };
   window.clearUpgradeDiscoveryFlags = function () {
     const keysToRemove = [];
@@ -608,7 +629,7 @@
       },
     ],
 
-    legend: [
+    legendary: [
       {
         id: "ring_lucky+",
         name: "Lucky Ring+",
@@ -671,7 +692,7 @@
   const CASE_COST = {
     basic: 19999,
     pro: 199999,
-    legend: 1999999,
+    legendary: 1999999,
   };
   window.buyCase = function (caseId) {
     const cost = CASE_COST[caseId] || 0;
@@ -685,30 +706,340 @@
     }
 
     pc -= cost;
+    if (typeof render === "function") render();
 
     const pool = CASE_LOOT_TABLE[caseId] || [];
     if (!pool.length) return;
+    const won = { ...pool[Math.floor(Math.random() * pool.length)] };
+    const STRIP_MIN = 500;
+    const stripLength = Math.max(STRIP_MIN, pool.length * 50);
+    const items = [];
+    for (let i = 0; i < stripLength; i++) {
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      items.push({ ...pick });
+    }
 
-    const won = Object.assign(
-      {},
-      pool[Math.floor(Math.random() * pool.length)]
-    );
-    if (!tryAddToInventory(won)) return;
+    const TAIL_ITEMS = 14;
+    const winIndex = Math.max(40, items.length - (TAIL_ITEMS + 1));
+    items[winIndex] = { ...won };
 
-    if (typeof saveInv === "function") saveInv();
-    if (typeof renderInventory === "function") renderInventory();
-    if (typeof render === "function") render();
-    if (typeof save === "function") save();
+    const overlay = document.createElement("div");
+    overlay.className = "case-overlay";
+    Object.assign(overlay.style, {
+      position: "fixed",
+      inset: "0",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "9999",
+      background: "rgba(0,0,0,0.6)",
+    });
+
+    const modal = document.createElement("div");
+    modal.className = "case-modal";
+    Object.assign(modal.style, {
+      width: "90vw",
+      maxWidth: "1200px",
+      height: "220px",
+      background:
+        "linear-gradient(180deg, rgba(20,20,24,0.95), rgba(6,6,8,0.95))",
+      border: "1px solid rgba(255,255,255,0.04)",
+      borderRadius: "10px",
+      boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+      overflow: "hidden",
+      position: "relative",
+      display: "flex",
+      flexDirection: "column",
+    });
+
+    const header = document.createElement("div");
+    Object.assign(header.style, {
+      padding: "12px 16px",
+      color: "#fff",
+      fontWeight: "700",
+    });
+    header.textContent = "Opening Case...";
+    modal.appendChild(header);
+
+    const scrollerWrap = document.createElement("div");
+    Object.assign(scrollerWrap.style, {
+      flex: "1",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      position: "relative",
+      padding: "8px 0 20px 0",
+      overflow: "hidden",
+    });
+
+    const scroller = document.createElement("div");
+    scroller.className = "case-scroller";
+    Object.assign(scroller.style, {
+      display: "flex",
+      alignItems: "center",
+      willChange: "transform",
+      padding: "8px 40px",
+      boxSizing: "border-box",
+    });
+
+    const RARITY_COL = {
+      common: "rgba(255,255,255,0.04)",
+      rare: "rgba(85,150,255,0.18)",
+      epic: "rgba(160,50,255,0.18)",
+      legendary: "rgba(255,200,60,0.22)",
+    };
+
+    items.forEach((it) => {
+      const cell = document.createElement("div");
+      cell.className = "case-item";
+      Object.assign(cell.style, {
+        width: "110px",
+        height: "110px",
+        margin: "0 8px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "8px",
+        background: "rgba(255,255,255,0.02)",
+        boxSizing: "border-box",
+        userSelect: "none",
+        boxShadow: `0 4px 18px ${RARITY_COL[it.rarity] || RARITY_COL.common}`,
+      });
+
+      const imgWrap = document.createElement("div");
+      Object.assign(imgWrap.style, {
+        width: "64px",
+        height: "64px",
+        borderRadius: "10px",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0,0,0,0.08)",
+      });
+
+      const img = document.createElement("img");
+      img.src =
+        it.icon ||
+        (it.id
+          ? "assets/icons/" + it.id + ".png"
+          : "assets/icons/case_basic.png");
+      img.alt = it.name || "item";
+      Object.assign(img.style, {
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
+      });
+      imgWrap.appendChild(img);
+
+      const name = document.createElement("div");
+      name.textContent = it.name || "Item";
+      Object.assign(name.style, {
+        fontSize: "12px",
+        color: "#ddd",
+        marginTop: "6px",
+        textAlign: "center",
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+        overflow: "hidden",
+        width: "100%",
+      });
+
+      cell.appendChild(imgWrap);
+      cell.appendChild(name);
+      scroller.appendChild(cell);
+    });
+
+    scrollerWrap.appendChild(scroller);
+
+    const pointer = document.createElement("div");
+    pointer.className = "case-pointer";
+    Object.assign(pointer.style, {
+      position: "absolute",
+      top: "0",
+      bottom: "0",
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "6px",
+      pointerEvents: "none",
+    });
+    const stick = document.createElement("div");
+    Object.assign(stick.style, {
+      height: "100%",
+      width: "6px",
+      margin: "auto",
+      background: "linear-gradient(180deg,#ffffff, #c6c6ff)",
+      borderRadius: "6px",
+      boxShadow: "0 0 18px rgba(255,255,255,0.06)",
+    });
+    pointer.appendChild(stick);
+
+    modal.appendChild(scrollerWrap);
+    modal.appendChild(pointer);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const SCROLL_MS = 7000;
+
+    requestAnimationFrame(() => {
+      scroller.style.transition = "none";
+      scroller.style.transform = "translate3d(0,0,0)";
+      scroller.offsetWidth;
+
+      const modalRect = modal.getBoundingClientRect();
+      const scrollerRect = scroller.getBoundingClientRect();
+      const chosenNode = scroller.children[winIndex];
+      if (!chosenNode) return;
+
+      const chosenCenter =
+        scrollerRect.left + chosenNode.offsetLeft + chosenNode.offsetWidth / 2;
+      const modalCenter = modalRect.left + modalRect.width / 2;
+
+      let targetOffset = chosenCenter - modalCenter;
+      if (targetOffset < 0) targetOffset = 0;
+
+      scroller.style.transition = `transform ${SCROLL_MS}ms cubic-bezier(0.2,0.9,0.05,1)`;
+      scroller.style.transform = `translate3d(${-targetOffset}px,0,0)`;
+
+      const onEnd = (ev) => {
+        if (!ev || !String(ev.propertyName || "").includes("transform")) return;
+        scroller.removeEventListener("transitionend", onEnd);
+
+        const resultCard = document.createElement("div");
+        resultCard.className = "case-result";
+        Object.assign(resultCard.style, {
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%,-50%)",
+          background:
+            "linear-gradient(180deg, rgba(10,10,14,0.98), rgba(20,20,26,0.98))",
+          padding: "16px",
+          borderRadius: "10px",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
+          color: "#fff",
+          minWidth: "320px",
+          textAlign: "center",
+        });
+
+        const title = document.createElement("div");
+        title.textContent = `Congratulations! You got ${won.name}!`;
+        Object.assign(title.style, { fontWeight: "700", marginBottom: "8px" });
+        resultCard.appendChild(title);
+
+        const ico = document.createElement("img");
+        ico.src =
+          won.icon ||
+          (won.id
+            ? "assets/icons/" + won.id + ".png"
+            : "assets/icons/case_basic.png");
+        Object.assign(ico.style, {
+          width: "80px",
+          height: "80px",
+          objectFit: "contain",
+        });
+        resultCard.appendChild(ico);
+
+        const btnRow = document.createElement("div");
+        Object.assign(btnRow.style, {
+          display: "flex",
+          gap: "8px",
+          justifyContent: "center",
+          marginTop: "12px",
+        });
+
+        const sellBtn = document.createElement("button");
+        sellBtn.textContent = "Sell";
+        Object.assign(sellBtn.style, {
+          background: "#2ecc71",
+          border: "none",
+          color: "#042",
+          padding: "8px 12px",
+          borderRadius: "6px",
+          cursor: "pointer",
+        });
+
+        const claimBtn = document.createElement("button");
+        claimBtn.textContent = "Claim";
+        Object.assign(claimBtn.style, {
+          background: "#2f8fff",
+          border: "none",
+          color: "#042",
+          padding: "8px 12px",
+          borderRadius: "6px",
+          cursor: "pointer",
+        });
+
+        btnRow.appendChild(sellBtn);
+        btnRow.appendChild(claimBtn);
+        resultCard.appendChild(btnRow);
+        modal.appendChild(resultCard);
+
+        sellBtn.addEventListener("click", function () {
+          showDialog({
+            title: "Sell Item",
+            message: "Are you sure you want to sell this item?",
+            okText: "Yes, sell",
+            cancelText: "Cancel",
+            onOk: function () {
+              const refund = Math.floor((CASE_COST[caseId] || 0) / 4);
+              pc += refund;
+              if (typeof render === "function") render();
+              if (typeof save === "function") save();
+              pushNotification(
+                "shop",
+                "Item Sold",
+                `${won.name} sold for ${refund} ${curr}`
+              );
+              overlay.remove();
+            },
+          });
+        });
+
+        claimBtn.addEventListener("click", function () {
+          showDialog({
+            title: "Claim Item",
+            message: "Are you sure you want to claim this item?",
+            okText: "Yes, claim",
+            cancelText: "Cancel",
+            onOk: function () {
+              const ok = tryAddToInventory({ ...won });
+              if (ok) {
+                if (typeof saveInv === "function") saveInv();
+                if (typeof renderInventory === "function") renderInventory();
+                if (typeof render === "function") render();
+                if (typeof save === "function") save();
+                pushNotification(
+                  "inventory",
+                  "Item Claimed",
+                  `You received ${won.name}`
+                );
+                overlay.remove();
+              }
+            },
+          });
+        });
+      };
+
+      scroller.addEventListener("transitionend", onEnd);
+    });
   };
 
   function generateDailyStock() {
-    return [
+    const base = [
       {
         id: "daily_hat_lucky",
         name: "Lucky Cap",
         desc: "+2% crit chance",
         price: 1200,
-        grant: { type: "hat", crit: 0.02, name: "Lucky Cap", id: "lucky_cap" },
+        grant: {
+          type: "hat",
+          crit: 0.02,
+          name: "Lucky Cap",
+          id: "cap_basic",
+          rarity: "common",
+        },
       },
       {
         id: "daily_boots_speed",
@@ -719,10 +1050,65 @@
           type: "boots",
           perClick: 0.5,
           name: "Sprint Boots",
-          id: "sprint_boots",
+          id: "boots_brown",
+          rarity: "rare",
         },
       },
     ];
+    function pickRandomFromCases(n) {
+      const pool = [];
+      Object.keys(CASE_LOOT_TABLE).forEach((k) => {
+        const arr = CASE_LOOT_TABLE[k] || [];
+        arr.forEach((it) => {
+          if (it.rarity === "common" || it.rarity === "rare") pool.push(it);
+        });
+      });
+      const usedIds = new Set(
+        base.map((b) => b.grant && b.grant.id).filter(Boolean)
+      );
+      const filtered = pool.filter((p) => !usedIds.has(p.id));
+      for (let i = filtered.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+      }
+      return filtered.slice(0, n).map((it) => {
+        const grant = {
+          type: it.type,
+          name: it.name,
+          id: it.id,
+          rarity: it.rarity,
+        };
+        if (it.perClick) grant.perClick = it.perClick;
+        if (it.perSecond) grant.perSecond = it.perSecond;
+        if (it.crit) grant.crit = it.crit;
+        return { item: it, grant };
+      });
+    }
+
+    function priceByRarity(r) {
+      switch (r) {
+        case "common":
+          return 25000;
+        case "rare":
+          return 350000;
+        case "epic":
+          return 650000;
+        case "legendary":
+          return 2500000000;
+        default:
+          return 999999999999;
+      }
+    }
+
+    const randoms = pickRandomFromCases(2).map(({ item, grant }) => ({
+      id: "daily_rand_" + item.id,
+      name: item.name,
+      desc: "From Cases",
+      price: priceByRarity(item.rarity),
+      grant,
+    }));
+
+    return base.concat(randoms);
   }
 
   window.loadDailyShop = function () {
@@ -774,7 +1160,29 @@
 
       const ico = document.createElement("div");
       ico.className = "shop-item-ico";
-      ico.textContent = item.name;
+      const iconId = (item.grant && item.grant.id) || item.id || "";
+      const rarity =
+        (item.grant && item.grant.rarity) ||
+        (item.item && item.item.rarity) ||
+        "common";
+      const img = document.createElement("img");
+      img.src = "assets/icons/" + iconId + ".png";
+      img.alt = item.name;
+      img.style.width = "48px";
+      img.style.height = "48px";
+      img.style.display = "block";
+      img.style.margin = "0 auto";
+      ico.appendChild(img);
+      const RARITY_GLOW = {
+        common: "0 0 8px rgb(66, 66, 66)",
+        rare: "0 0 12px rgb(85, 150, 255)",
+        epic: "0 0 14px rgb(159, 50, 255)",
+        legendary: "0 0 18px rgb(255, 200, 60)",
+      };
+      if (RARITY_GLOW[rarity]) {
+        ico.style.boxShadow = RARITY_GLOW[rarity];
+        ico.style.borderRadius = "6px";
+      }
       row.appendChild(ico);
 
       const body = document.createElement("div");

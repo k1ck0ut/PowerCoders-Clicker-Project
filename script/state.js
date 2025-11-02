@@ -68,9 +68,22 @@
 
   window.equipManualClick = 0;
   window.equipPassivePS = 0;
+  window.passiveToClickPercent =
+    +localStorage.getItem("pc:passiveToClick") || 0;
 
   window.perClick = baseManualClick;
   window.pcps = basePassivePS;
+
+  try {
+    window.notifications =
+      JSON.parse(localStorage.getItem("pc:notifications") || "{}") || {};
+  } catch (e) {
+    window.notifications = {};
+  }
+  window.unseenNotificationCount =
+    Object.values(window.notifications).filter(function (v) {
+      return !!v;
+    }).length || 0;
 
   window.lastRefineEvent = null;
   window.effectsEnabled = true;

@@ -92,7 +92,8 @@
             <div class="shop-grid">
 
               <div class="shop-item">
-                <div class="shop-item-ico rare">Basic Case</div>
+                <div class="shop-item-ico rare"><img src="assets/icons/case_basic.png" alt="Basic Case"
+                    style="width:72px;height:72px;display:block;margin:0 auto;" /></div>
                 <div class="shop-item-body">
                   <div class="shop-item-name">Basic Case</div>
                   <div class="shop-item-desc">Common / Uncommon gear</div>
@@ -102,7 +103,8 @@
               </div>
 
               <div class="shop-item">
-                <div class="shop-item-ico epic">Pro Case</div>
+                <div class="shop-item-ico epic"><img src="assets/icons/case_pro.png" alt="Pro Case"
+                    style="width:72px;height:72px;display:block;margin:0 auto;" /></div>
                 <div class="shop-item-body">
                   <div class="shop-item-name">Pro Case</div>
                   <div class="shop-item-desc">Uncommon / Rare / Epic gear</div>
@@ -112,12 +114,13 @@
               </div>
 
               <div class="shop-item">
-                <div class="shop-item-ico legendary">Legend Case</div>
+                <div class="shop-item-ico legendary"><img src="assets/icons/case_legend.png" alt="Legendary Case"
+                    style="width:72px;height:72px;display:block;margin:0 auto;" /></div>
                 <div class="shop-item-body">
-                  <div class="shop-item-name">Legend Case</div>
+                  <div class="shop-item-name">Legendary Case</div>
                   <div class="shop-item-desc">Epic / Legendary only</div>
                   <div class="shop-item-price"><span class="pSym">{P.}</span> <span>1 999 999</span></div>
-                  <button class="btn small buy-case" data-case="legend">Buy</button>
+                  <button class="btn small buy-case" data-case="legendary">Buy</button>
                 </div>
               </div>
 
@@ -212,39 +215,95 @@
       <section class="panel" id="panel-inventory" aria-label="Inventory">
         <h3>Inventory</h3>
 
-        <div class="inventory-wrapper card-big">
-          <div class="equip-block card subpanel compact-equip">
-            <div class="equip-header-row">
-              <div class="title">Equipment</div>
-            </div>
+        <div class="inv-tabs">
+          <button class="inv-tab selected" data-invtab="bag">
+            <img class="ico" id="ico-inv-bag" alt="Bag" />
+            <span>Backpack</span>
+          </button>
+          <button class="inv-tab" data-invtab="upgrade">
+            <img class="ico" id="ico-inv-upgrade" alt="Clothing Upgrades" />
+            <span>Clothing Upgrades</span>
+          </button>
+        </div>
 
-            <div class="equip-layout compact">
-              <div class="equip-preview small">
-                <div class="equip-preview-body small">
-                </div>
+        <div id="invTabBag" class="inv-tab-content active">
+          <div class="inventory-wrapper card-big">
+            <div class="equip-block card subpanel compact-equip">
+              <div class="equip-header-row">
+                <div class="title">Equipment</div>
               </div>
 
-              <div class="equip-slots" id="equipGrid">
-                <div class="slot" data-slot="hat"><span>Hat</span></div>
-                <div class="slot" data-slot="shirt"><span>Shirt</span></div>
-                <div class="slot" data-slot="pants"><span>Pants</span></div>
-                <div class="slot" data-slot="boots"><span>Boots</span></div>
-                <div class="slot" data-slot="ring"><span>Ring</span></div>
-                <div class="slot" data-slot="jewel"><span>Jewel</span></div>
+              <div class="equip-layout compact">
+                <div class="equip-preview small">
+                  <div class="equip-preview-body small">
+                  </div>
+                </div>
+
+                <div class="equip-slots" id="equipGrid">
+                  <div class="slot" data-slot="hat"><span>Hat</span></div>
+                  <div class="slot" data-slot="shirt"><span>Shirt</span></div>
+                  <div class="slot" data-slot="pants"><span>Pants</span></div>
+                  <div class="slot" data-slot="boots"><span>Boots</span></div>
+                  <div class="slot" data-slot="ring"><span>Ring</span></div>
+                  <div class="slot" data-slot="jewel"><span>Jewel</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bag-block card subpanel">
+              <div class="row bag-header" style="justify-content:space-between;align-items:center;">
+                <div class="title">Bag</div>
+                <div class="sub" id="invCapacity">0 / 20</div>
+              </div>
+
+              <div id="bagGrid" class="bag-grid"></div>
+
+              <div class="row gap bag-actions" style="margin-top:10px;flex-wrap:wrap;">
+                <button id="btnSortInv" class="btn small">Sort</button>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="bag-block card subpanel">
-            <div class="row bag-header" style="justify-content:space-between;align-items:center;">
-              <div class="title">Bag</div>
-              <div class="sub" id="invCapacity">0 / 20</div>
+        <div id="invTabUpgrade" class="inv-tab-content">
+          <div class="card subpanel">
+            <div class="row" style="align-items:center;display: ruby-text;">
+              <img class="ico" id="ico-inv-upgrade2" alt="Upgrade"
+                style="width:128px;height:128px;opacity:0.8;vertical-align:middle;margin-right:6px;">
+              <div class="title" style="font-size:16px;line-height:1;">Clothing Upgrades</div>
             </div>
+            <div class="row" style="margin-top:10px;align-items:center;gap:12px;flex-wrap:wrap;">
+              <div style="position:relative;">
+                <div id="upgradePickSquare" class="pick-square" title="Pick an item"></div>
+                <button id="clearPickBtn" class="btn small" title="Clear selection"
+                  style="position:absolute;top:-8px;right:-8px;padding:4px 6px;">✕</button>
+              </div>
+              <div class="sub">
+                Pick any item from backpack or equipped. Equipped items are marked <b>Equipped</b>.
+              </div>
+            </div>
+            <div class="row" style="margin-top:12px;">
+              <div class="card" style="width:100%">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                  <div id="upgradeArrow" class="arrow" aria-hidden="true" style="width:64px;height:64px">
+                    <svg viewBox="0 0 24 24" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 12h14l-4-4 1.4-1.4L22 12l-7.6 7.4L12 18l4-4H3z" />
+                    </svg>
+                  </div>
 
-            <div id="bagGrid" class="bag-grid"></div>
+                  <div style="flex:1;text-align:left">
+                    <div><b>Level:</b> <span id="level">0</span> / <span id="maxLevel">11</span></div>
+                    <div><b>Stat bonus:</b> <span id="bonus">0%</span></div>
+                    <div><b>Next:</b> <span id="chance">—</span></div>
+                    <div class="status" id="message" style="margin-top:6px">Pick an item to upgrade.</div>
+                  </div>
 
-            <div class="row gap bag-actions" style="margin-top:10px;flex-wrap:wrap;">
-              <button id="btnSortInv" class="btn small">Sort</button>
+                  <div
+                    style="display:flex;flex-direction:column;gap:8px;flex-basis:100%;align-items:flex-start;margin-top:6px">
+                    <button id="upgradeBtn" class="btn primary">Upgrade</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -342,6 +401,7 @@
   <script src="./script/upgrades.js"></script>
   <script src="./script/achievements.js"></script>
   <script src="./script/inventory.js"></script>
+  <script src="./script/upgrades_clothes.js"></script>
   <script src="./script/logic.js"></script>
   <script src="./script/ui.js"></script>
   <script src="./script/audio.js"></script>
